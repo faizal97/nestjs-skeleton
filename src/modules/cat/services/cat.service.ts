@@ -1,33 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import { CreateCatDto } from '../dto/create-cat.dto';
 import { UpdateCatDto } from '../dto/update-cat.dto';
 import { Cat } from '../entities/cat.entity';
+import { CatRepository } from '../repositories/cat.repository';
 
 @Injectable()
 export class CatService {
-  constructor(@InjectRepository(Cat) private readonly catRepository: Repository<Cat>) {
 
+  protected catRepository: CatRepository;
+  constructor(catRepository: CatRepository) {
+    this.catRepository = catRepository;
   }
 
-  create(createCatDto: CreateCatDto) {
-    return 'This action adds a new cat';
+  async create(createCatDto: CreateCatDto) {
+    let cat: Cat = this.catRepository.create({ ...createCatDto });
+    cat = await this.catRepository.save(cat);
+    return cat;
   }
 
-  findAll() {
-    return this.catRepository.find();
+  findAll(breed: string = null) {
+    return !breed ? this.catRepository.find() : this.catRepository.findByBreed(breed);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} cat`;
+  findOne(id: string) {
+    return this.catRepository.findOne(id);
   }
 
-  update(id: number, updateCatDto: UpdateCatDto) {
-    return `This action updates a #${id} cat`;
+  update(id: string, updateCatDto: UpdateCatDto) {
+    return this.catRepository
+      .createQueryBuilder()
+      .update(Cat)
+      .where("id = :id", { id })
+      .set({ ...updateCatDto })
+      .execute();
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} cat`;
+  remove(id: string) {
+    return this.catRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Cat)
+      .where("id = :id", { id })
+      .execute();
   }
 }
